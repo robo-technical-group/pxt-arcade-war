@@ -64,6 +64,10 @@ function startGame () {
 function getArrayIndexForPlayerId (player2: number) {
     return playerIds.indexOf(player2)
 }
+function updateRoundSprite () {
+    fancyText.setText(roundSprite, "Battle #" + round)
+    roundSprite.setPosition(ROUND_SPRITE_X, ROUND_SPRITE_Y)
+}
 function evaluateDraw () {
     sprites.destroyAllSpritesOfKind(SpriteKind.InstructionSprite)
     scores = []
@@ -163,6 +167,7 @@ info.player3.onLifeZero(function () {
 })
 function init () {
     NUM_WAR_CARDS = 4
+    round = 0
     firstWar = true
     scene.setBackgroundColor(12)
     addGameHeader()
@@ -216,6 +221,12 @@ function init () {
     ]
     cornerSprite = sprites.create(assets.image`cornerSprite`, SpriteKind.Enemy)
     cornerSprite.setPosition(-20, -20)
+    roundSprite = fancyText.create("abc")
+    roundSprite.setPosition(-20, -20)
+    fancyText.setColor(roundSprite, 9)
+    fancyText.setFont(roundSprite, fancyText.smallArcade)
+    ROUND_SPRITE_X = 80
+    ROUND_SPRITE_Y = 115
 }
 function setLives (player2: number, newLives: number) {
     if (player2 == 1) {
@@ -398,6 +409,8 @@ function updateDrawPrompt (player2: number) {
     drawPrompt.setFlag(SpriteFlag.Invisible, cardsToDraw[player2] == -1)
 }
 function startRound () {
+    round += 1
+    updateRoundSprite()
     updateLives()
     sprites.destroyAllSpritesOfKind(SpriteKind.InstructionSprite)
     printStrings(["Press A to draw!"], 80, 60, 1)
@@ -446,6 +459,10 @@ let playerIndex = 0
 let NUM_WAR_CARDS = 0
 let scorePlayers: number[] = []
 let scores: number[] = []
+let ROUND_SPRITE_Y = 0
+let ROUND_SPRITE_X = 0
+let round = 0
+let roundSprite: fancyText.TextSprite = null
 let playerId = 0
 let discardPile: Card[] = []
 let theDeck: Shoe = null

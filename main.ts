@@ -1,6 +1,9 @@
 namespace SpriteKind {
     export const InstructionSprite = SpriteKind.create()
 }
+/**
+ * Fix multiplayer war. Reset scores to zero at start of war. Perhaps add a function that resets scores and then call at start of round (this already happens) and start of war.
+ */
 function getLives (player2: number) {
     playerIndex = playerIds.indexOf(player2)
     playerHand = playerHands[playerIndex]

@@ -339,6 +339,7 @@ function activatePlayer (player2: number) {
         drawPrompt.setFlag(SpriteFlag.Ghost, true)
         drawPrompt.setFlag(SpriteFlag.Invisible, true)
         fancyText.setFont(drawPrompt, fancyText.smallArcade)
+        fancyText.setColor(drawPrompt, 9)
         drawPrompts.push(drawPrompt)
     }
     if (playerIds.length == 2) {
@@ -393,7 +394,6 @@ function startWar () {
     }
     sprites.destroyAllSpritesOfKind(SpriteKind.InstructionSprite)
     printStrings(["WAR!", "Press A to draw!"], 80, 55, 1)
-    gameMode = 1
     playersDrawn = []
     numPlayersInRound = 0
     index = 0
@@ -403,8 +403,10 @@ function startWar () {
         numPlayersInRound += 1
         index += 1
     }
+    gameMode = 1
 }
 function updateDrawPrompt (player2: number) {
+    playerIndex = playerIds.indexOf(player2)
     drawPrompt = drawPrompts[playerIndex]
     fancyText.setText(drawPrompt, "Draw" + cardsToDraw[player2])
     drawPrompt.setPosition(xCards[player2], yDrawPrompts[player2])

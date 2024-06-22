@@ -6,13 +6,21 @@ function getLives (player2: number) {
     playerDiscard = playerDiscards[player2]
     return playerHand.length + playerDiscard.length
 }
+controller.player1.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Pressed, function () {
+    // Game modes
+    // -1 ==> Activating players
+    // 1 ==> Drawing cards
+    // 2 ==> Cards moving
+    if (gameMode == -1) {
+        activatePlayer(1)
+        info.player1.setScore(0)
+        info.player1.setLife(1)
+    } else if (gameMode == 1 && !(hasPlayerDrawn(1))) {
+        drawCard(1)
+    }
+})
 controller.player1.onButtonEvent(ControllerButton.B, ControllerButtonEvent.Pressed, function () {
     if (gameMode == -1 && playerIds.length > 1) {
-        message = "Aces are high."
-        if (playerIds.length == 3) {
-            message = "Aces are high.\\nJokers are higher!"
-        }
-        game.showLongText(message, DialogLayout.Center)
         startGame()
     }
 })
@@ -20,9 +28,12 @@ info.player4.onLifeZero(function () {
 	
 })
 function startGame () {
+    showInstructions()
     sprites.destroyAllSpritesOfKind(SpriteKind.InstructionSprite)
     if (playerIds.length == 3) {
         theDeck = PlayingCards.createDeckSimple(DeckType.Poker, 2)
+    } else if (playerIds.length == 4) {
+        theDeck = PlayingCards.createDeckSimple(DeckType.Poker, 4)
     } else {
         theDeck = PlayingCards.createPokerDeck()
     }
@@ -83,10 +94,13 @@ controller.player2.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Press
         activatePlayer(2)
         info.player2.setScore(0)
         info.player2.setLife(1)
-    } else if (gameMode == 1 && (!(hasPlayerDrawn(2)) && info.player2.life() > 0)) {
+    } else if (gameMode == 1 && !(hasPlayerDrawn(2))) {
         drawCard(2)
     }
 })
+function showWarInstructions () {
+    game.showLongText("WAR!\\nPlayers draw " + NUM_WAR_CARDS + " cards. Only the last card counts! Winner takes all!", DialogLayout.Full)
+}
 controller.player3.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Pressed, function () {
     if (gameMode == -1) {
         activatePlayer(3)
@@ -109,6 +123,10 @@ function drawCard (playerId: number) {
     if (cardsToDraw[playerId] > 0) {
         playerIndex = playerIds.indexOf(playerId)
         playerHand = playerHands[playerIndex]
+        if (playerHand.length == 0) {
+            resetPlayerHand(playerId)
+            playerHand = playerHands[playerIndex]
+        }
         playerCard = playerHand.shift()
         playerScore = playerCard.faceValue
         discardPile.push(playerCard)
@@ -132,7 +150,7 @@ controller.player4.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Press
         activatePlayer(4)
         info.player4.setScore(0)
         info.player4.setLife(1)
-    } else if (gameMode == 1 && (!(hasPlayerDrawn(4)) && info.player4.life() > 0)) {
+    } else if (gameMode == 1 && !(hasPlayerDrawn(4))) {
         drawCard(4)
     }
 })
@@ -252,19 +270,26 @@ function setScore (player2: number, newScore: number) {
         info.player4.setScore(newScore)
     }
 }
-controller.player1.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Pressed, function () {
-    // Game modes
-    // -1 ==> Activating players
-    // 1 ==> Drawing cards
-    // 2 ==> Cards moving
-    if (gameMode == -1) {
-        activatePlayer(1)
-        info.player1.setScore(0)
-        info.player1.setLife(1)
-    } else if (gameMode == 1 && !(hasPlayerDrawn(1))) {
-        drawCard(1)
+function resetPlayerHand (player2: number) {
+    playerIndex = playerIds.indexOf(playerId)
+    playerHand = playerHands[playerIndex]
+    // This should always be the case; verify anyway.
+    if (playerHand.length == 0) {
+        playerDiscard = playerDiscards[player2]
+        // Shuffle discards.
+        for (let index = 0; index <= playerDiscard.length - 1; index++) {
+            swapIndex = randint(0, playerDiscard.length - 1)
+            if (index != swapIndex) {
+                tempCard = playerDiscard[index]
+                playerDiscard[index] = playerDiscard[swapIndex]
+                playerDiscard[swapIndex] = tempCard
+            }
+        }
+        playerHands[playerIndex] = playerDiscard
+        playerDiscards[playerIndex] = []
+        updateLives()
     }
-})
+}
 info.player1.onLifeZero(function () {
 	
 })
@@ -330,6 +355,13 @@ function awardDraw () {
     discardPile = []
     startRound()
 }
+function showInstructions () {
+    message = "WAR!\\nAces are high."
+    if (playerIds.length == 3) {
+        message = "" + message + "\\nJokers are higher!"
+    }
+    game.showLongText(message, DialogLayout.Center)
+}
 function printStrings (stringList: string[], x: number, startingY: number, color: number) {
     y = startingY
     for (let value of stringList) {
@@ -344,8 +376,8 @@ function startWar () {
     gameMode = 2
     music.play(music.melodyPlayable(music.bigCrash), music.PlaybackMode.UntilDone)
     if (firstWar) {
-        game.showLongText("WAR!\\nPlayers draw " + NUM_WAR_CARDS + " cards. Only the last one counts! Winner takes all!", DialogLayout.Full)
         firstWar = false
+        showWarInstructions()
     }
     sprites.destroyAllSpritesOfKind(SpriteKind.InstructionSprite)
     printStrings(["WAR!", "Press A to draw!"], 80, 55, 1)
@@ -389,7 +421,10 @@ function startRound () {
 let index = 0
 let instructionsSprite: fancyText.TextSprite = null
 let y = 0
+let message = ""
 let playerLives = 0
+let tempCard: Card = null
+let swapIndex = 0
 let headingSprite: fancyText.TextSprite = null
 let temp = 0
 let cornerSprite: Sprite = null
@@ -397,7 +432,6 @@ let yCorners: number[] = []
 let xCorners: number[] = []
 let yDrawPrompts: number[] = []
 let firstWar = false
-let NUM_WAR_CARDS = 0
 let playersDrawn: number[] = []
 let playerScore = 0
 let playerCard: Card = null
@@ -409,12 +443,12 @@ let xCards: number[] = []
 let playerSprites: Sprite[] = []
 let playerSprite: Sprite = null
 let playerIndex = 0
+let NUM_WAR_CARDS = 0
 let scorePlayers: number[] = []
 let scores: number[] = []
 let playerId = 0
 let discardPile: Card[] = []
 let theDeck: Shoe = null
-let message = ""
 let playerIds: number[] = []
 let gameMode = 0
 let playerDiscards: Card[][] = []

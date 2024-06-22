@@ -2,8 +2,9 @@ namespace SpriteKind {
     export const InstructionSprite = SpriteKind.create()
 }
 function getLives (player2: number) {
-    playerHand = playerHands[player2]
-    playerDiscard = playerDiscards[player2]
+    playerIndex = playerIds.indexOf(player2)
+    playerHand = playerHands[playerIndex]
+    playerDiscard = playerDiscards[playerIndex]
     return playerHand.length + playerDiscard.length
 }
 controller.player1.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Pressed, function () {
@@ -143,7 +144,7 @@ function drawCard (playerId: number) {
         updateDrawPrompt(playerId)
         if (cardsToDraw[playerId] <= 0) {
             playersDrawn.push(playerId)
-            if (playersDrawn.length == playerIds.length) {
+            if (playersDrawn.length == numPlayersInRound) {
                 evaluateDraw()
             }
         }
@@ -394,11 +395,12 @@ function startWar () {
     printStrings(["WAR!", "Press A to draw!"], 80, 55, 1)
     gameMode = 1
     playersDrawn = []
+    numPlayersInRound = 0
     index = 0
     while (index < scores.length && scores[index] == scores[0]) {
         playerId = scorePlayers[index]
-        resetPlayerSprites(playerId)
         setupDraw(playerId, NUM_WAR_CARDS)
+        numPlayersInRound += 1
         index += 1
     }
 }
@@ -414,22 +416,26 @@ function startRound () {
     updateLives()
     sprites.destroyAllSpritesOfKind(SpriteKind.InstructionSprite)
     printStrings(["Press A to draw!"], 80, 60, 1)
-    gameMode = 1
     playersDrawn = []
+    numPlayersInRound = 0
     for (let index = 0; index <= playerIds.length - 1; index++) {
         playerId = playerIds[index]
-        if (playerId == 1) {
-            info.player1.setScore(0)
-        } else if (playerId == 2) {
-            info.player2.setScore(0)
-        } else if (playerId == 3) {
-            info.player3.setScore(0)
-        } else {
-            info.player4.setScore(0)
+        if (getLives(playerId) > 0) {
+            if (playerId == 1) {
+                info.player1.setScore(0)
+            } else if (playerId == 2) {
+                info.player2.setScore(0)
+            } else if (playerId == 3) {
+                info.player3.setScore(0)
+            } else {
+                info.player4.setScore(0)
+            }
+            resetPlayerSprites(playerId)
+            setupDraw(playerId, 1)
+            numPlayersInRound += 1
         }
-        resetPlayerSprites(playerId)
-        setupDraw(playerId, 1)
     }
+    gameMode = 1
 }
 let index = 0
 let instructionsSprite: fancyText.TextSprite = null
@@ -445,6 +451,7 @@ let yCorners: number[] = []
 let xCorners: number[] = []
 let yDrawPrompts: number[] = []
 let firstWar = false
+let numPlayersInRound = 0
 let playersDrawn: number[] = []
 let playerScore = 0
 let playerCard: Card = null
@@ -455,7 +462,6 @@ let yCards: number[] = []
 let xCards: number[] = []
 let playerSprites: Sprite[] = []
 let playerSprite: Sprite = null
-let playerIndex = 0
 let NUM_WAR_CARDS = 0
 let scorePlayers: number[] = []
 let scores: number[] = []
@@ -466,10 +472,11 @@ let roundSprite: fancyText.TextSprite = null
 let playerId = 0
 let discardPile: Card[] = []
 let theDeck: Shoe = null
-let playerIds: number[] = []
 let gameMode = 0
 let playerDiscards: Card[][] = []
 let playerDiscard: Card[] = []
 let playerHands: Card[][] = []
 let playerHand: Card[] = []
+let playerIds: number[] = []
+let playerIndex = 0
 init()

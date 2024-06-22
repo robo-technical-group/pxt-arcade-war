@@ -1,8 +1,10 @@
 namespace SpriteKind {
     export const InstructionSprite = SpriteKind.create()
 }
-function evaluateWar () {
-	
+function getLives (player2: number) {
+    playerHand = playerHands[player2]
+    playerDiscard = playerDiscards[player2]
+    return playerHand.length + playerDiscard.length
 }
 controller.player1.onButtonEvent(ControllerButton.B, ControllerButtonEvent.Pressed, function () {
     if (gameMode == -1 && playerIds.length > 1) {
@@ -32,12 +34,12 @@ function startGame () {
     discardPile = [theDeck.nextCard]
     discardPile.pop()
     theDeck.shuffle()
-    for (let index = 0; index < playerIds.length; index++) {
+    for (let index2 = 0; index2 < playerIds.length; index2++) {
         playerHands.push([])
         playerDiscards.push([])
     }
     playerId = 0
-    for (let index = 0; index < theDeck.numCards; index++) {
+    for (let index2 = 0; index2 < theDeck.numCards; index2++) {
         playerHand = playerHands[playerId]
         playerHand.push(theDeck.nextCard)
         playerId += 1
@@ -68,6 +70,8 @@ function evaluateDraw () {
         }
     }
     sortScores()
+    console.logValue("scores", scores)
+    console.logValue("score player IDs", scorePlayers)
     if (scores[0] == scores[1]) {
         startWar()
     } else {
@@ -88,7 +92,7 @@ controller.player3.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Press
         activatePlayer(3)
         info.player3.setScore(0)
         info.player3.setLife(1)
-    } else if (gameMode == 1 && (!(hasPlayerDrawn(3)) && info.player3.life() > 0)) {
+    } else if (gameMode == 1 && !(hasPlayerDrawn(3))) {
         drawCard(3)
     }
 })
@@ -96,23 +100,31 @@ function resetPlayerSprites (player2: number) {
     playerIndex = playerIds.indexOf(player2)
     playerSprite = playerSprites[playerIndex]
     playerSprite.setFlag(SpriteFlag.Invisible, true)
-    playerSprite.setPosition(xCoords[player2], yCoords[player2])
+    playerSprite.setPosition(xCards[player2], yCards[player2])
     playerSprite.follow(null)
+    drawPrompt = drawPrompts[playerIndex]
+    drawPrompt.setFlag(SpriteFlag.Invisible, true)
 }
 function drawCard (playerId: number) {
-    playersDrawn.push(playerId)
-    playerIndex = playerIds.indexOf(playerId)
-    playerHand = playerHands[playerIndex]
-    playerCard = playerHand.shift()
-    playerScore = playerCard.faceValue
-    discardPile.push(playerCard)
-    playerSprite = playerSprites[playerIndex]
-    playerSprite.setImage(theDeck.getCardImage(playerCard, CardSpriteSize.Size32x32))
-    playerSprite.setFlag(SpriteFlag.Invisible, false)
-    setScore(playerId, playerScore)
-    changeLives(playerId, -1)
-    if (playersDrawn.length == playerIds.length) {
-        evaluateDraw()
+    if (cardsToDraw[playerId] > 0) {
+        playerIndex = playerIds.indexOf(playerId)
+        playerHand = playerHands[playerIndex]
+        playerCard = playerHand.shift()
+        playerScore = playerCard.faceValue
+        discardPile.push(playerCard)
+        playerSprite = playerSprites[playerIndex]
+        playerSprite.setImage(theDeck.getCardImage(playerCard, CardSpriteSize.Size32x32))
+        playerSprite.setFlag(SpriteFlag.Invisible, false)
+        setScore(playerId, playerScore)
+        changeLives(playerId, -1)
+        cardsToDraw[playerId] = cardsToDraw[playerId] - 1
+        updateDrawPrompt(playerId)
+        if (cardsToDraw[playerId] <= 0) {
+            playersDrawn.push(playerId)
+            if (playersDrawn.length == playerIds.length) {
+                evaluateDraw()
+            }
+        }
     }
 }
 controller.player4.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Pressed, function () {
@@ -124,10 +136,16 @@ controller.player4.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Press
         drawCard(4)
     }
 })
+function setupDraw (player2: number, numCards: number) {
+    cardsToDraw[player2] = numCards
+    updateDrawPrompt(player2)
+}
 info.player3.onLifeZero(function () {
 	
 })
 function init () {
+    NUM_WAR_CARDS = 4
+    firstWar = true
     scene.setBackgroundColor(12)
     addGameHeader()
     printStrings(["Players:", "Press A to activate!"], 80, 60, 1)
@@ -135,19 +153,34 @@ function init () {
     playerIds = []
     playersDrawn = []
     playerSprites = []
-    xCoords = [
+    drawPrompts = []
+    cardsToDraw = [
     0,
-    16,
-    144,
-    16,
-    144
+    0,
+    0,
+    0,
+    0
     ]
-    yCoords = [
+    xCards = [
+    0,
+    18,
+    142,
+    18,
+    142
+    ]
+    yCards = [
     0,
     32,
     32,
     88,
     88
+    ]
+    yDrawPrompts = [
+    0,
+    53,
+    53,
+    67,
+    67
     ]
     xCorners = [
     0,
@@ -174,7 +207,7 @@ function setLives (player2: number, newLives: number) {
     } else if (player2 == 3) {
         info.player3.setLife(newLives)
     } else {
-        info.player4.setLife(playerLives)
+        info.player4.setLife(newLives)
     }
 }
 function swapElements (list: number[], firstIndex: number, secondIndex: number) {
@@ -224,12 +257,11 @@ controller.player1.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Press
     // -1 ==> Activating players
     // 1 ==> Drawing cards
     // 2 ==> Cards moving
-    // 10 ==> Drawing war!
     if (gameMode == -1) {
         activatePlayer(1)
         info.player1.setScore(0)
         info.player1.setLife(1)
-    } else if (gameMode == 1 && (!(hasPlayerDrawn(1)) && info.player1.life() > 0)) {
+    } else if (gameMode == 1 && !(hasPlayerDrawn(1))) {
         drawCard(1)
     }
 })
@@ -264,7 +296,13 @@ function activatePlayer (player2: number) {
         playerIds.push(player2)
         playerSprite = sprites.create(assets.image`blankCard`, SpriteKind.Player)
         playerSprite.setFlag(SpriteFlag.Ghost, true)
+        playerSprite.setFlag(SpriteFlag.Invisible, true)
         playerSprites.push(playerSprite)
+        drawPrompt = fancyText.create("Draw 0")
+        drawPrompt.setFlag(SpriteFlag.Ghost, true)
+        drawPrompt.setFlag(SpriteFlag.Invisible, true)
+        fancyText.setFont(drawPrompt, fancyText.smallArcade)
+        drawPrompts.push(drawPrompt)
     }
     if (playerIds.length == 2) {
         printStrings(["Player 1:", "Press B to start game!"], 80, 90, 5)
@@ -303,7 +341,29 @@ function printStrings (stringList: string[], x: number, startingY: number, color
     }
 }
 function startWar () {
-	
+    gameMode = 2
+    music.play(music.melodyPlayable(music.bigCrash), music.PlaybackMode.UntilDone)
+    if (firstWar) {
+        game.showLongText("WAR!\\nPlayers draw " + NUM_WAR_CARDS + " cards. Only the last one counts! Winner takes all!", DialogLayout.Full)
+        firstWar = false
+    }
+    sprites.destroyAllSpritesOfKind(SpriteKind.InstructionSprite)
+    printStrings(["WAR!", "Press A to draw!"], 80, 55, 1)
+    gameMode = 1
+    playersDrawn = []
+    index = 0
+    while (index < scores.length && scores[index] == scores[0]) {
+        playerId = scorePlayers[index]
+        resetPlayerSprites(playerId)
+        setupDraw(playerId, NUM_WAR_CARDS)
+        index += 1
+    }
+}
+function updateDrawPrompt (player2: number) {
+    drawPrompt = drawPrompts[playerIndex]
+    fancyText.setText(drawPrompt, "Draw" + cardsToDraw[player2])
+    drawPrompt.setPosition(xCards[player2], yDrawPrompts[player2])
+    drawPrompt.setFlag(SpriteFlag.Invisible, cardsToDraw[player2] == -1)
 }
 function startRound () {
     updateLives()
@@ -323,34 +383,42 @@ function startRound () {
             info.player4.setScore(0)
         }
         resetPlayerSprites(playerId)
+        setupDraw(playerId, 1)
     }
 }
+let index = 0
 let instructionsSprite: fancyText.TextSprite = null
 let y = 0
-let playerDiscard: Card[] = []
+let playerLives = 0
 let headingSprite: fancyText.TextSprite = null
 let temp = 0
-let playerLives = 0
 let cornerSprite: Sprite = null
 let yCorners: number[] = []
 let xCorners: number[] = []
+let yDrawPrompts: number[] = []
+let firstWar = false
+let NUM_WAR_CARDS = 0
+let playersDrawn: number[] = []
 let playerScore = 0
 let playerCard: Card = null
-let playersDrawn: number[] = []
-let yCoords: number[] = []
-let xCoords: number[] = []
+let cardsToDraw: number[] = []
+let drawPrompts: fancyText.TextSprite[] = []
+let drawPrompt: fancyText.TextSprite = null
+let yCards: number[] = []
+let xCards: number[] = []
 let playerSprites: Sprite[] = []
 let playerSprite: Sprite = null
 let playerIndex = 0
 let scorePlayers: number[] = []
 let scores: number[] = []
-let playerHand: Card[] = []
 let playerId = 0
 let discardPile: Card[] = []
-let playerDiscards: Card[][] = []
-let playerHands: Card[][] = []
 let theDeck: Shoe = null
 let message = ""
 let playerIds: number[] = []
 let gameMode = 0
+let playerDiscards: Card[][] = []
+let playerDiscard: Card[] = []
+let playerHands: Card[][] = []
+let playerHand: Card[] = []
 init()

@@ -2,12 +2,16 @@
     "name": "War!",
     "version": "0.0.0",
     "dependencies": {
-        "device": "*"
+        "device": "*",
+        "pxt-arcade-playing-cards": "github:robo-technical-group/pxt-arcade-playing-cards#v3.0.0",
+        "arcade-fancy-text": "github:riknoll/arcade-fancy-text#v0.1.1"
     },
     "files": [
         "main.blocks",
         "main.ts",
-        "README.md"
+        "README.md",
+        "images.g.jres",
+        "images.g.ts"
     ],
     "testDependencies": {},
     "targetVersions": {

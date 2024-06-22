@@ -16,5 +16,6 @@
     },
     "supportedTargets": [
         "arcade"
-    ]
+    ],
+    "preferredEditor": "blocksprj"
 }

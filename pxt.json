@@ -1,0 +1,16 @@
+{
+    "name": "War!",
+    "version": "0.0.0",
+    "files": [
+        "main.blocks",
+        "main.ts",
+        "README.md"
+    ],
+    "supportedTargets": [
+        "arcade"
+    ],
+    "dependencies": {
+        "device": "*"
+    },
+    "testDependencies": {}
+}

@@ -200,6 +200,10 @@ controller.player4.onButtonEvent(ControllerButton.A, ControllerButtonEvent.Press
 function setupDraw (player2: number, numCards: number) {
     cardsToDraw[player2] = numCards
     updateDrawPrompt(player2)
+    if (numCards == 1) {
+        // drawPrompt was previously set in updateDrawPrompt().
+        drawPrompt.setFlag(SpriteFlag.Invisible, true)
+    }
 }
 info.player3.onLifeZero(function () {
 	
@@ -481,7 +485,7 @@ function updateDrawPrompt (player2: number) {
     drawPrompt = drawPrompts[playerIndex]
     fancyText.setText(drawPrompt, "Draw" + cardsToDraw[player2])
     drawPrompt.setPosition(xCards[player2], yDrawPrompts[player2])
-    drawPrompt.setFlag(SpriteFlag.Invisible, cardsToDraw[player2] == -1)
+    drawPrompt.setFlag(SpriteFlag.Invisible, cardsToDraw[player2] == 0)
 }
 function startRound () {
     round += 1

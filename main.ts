@@ -1,9 +1,44 @@
 namespace SpriteKind {
     export const InstructionSprite = SpriteKind.create()
 }
-/**
- * Fix multiplayer war. Reset scores to zero at start of war. Perhaps add a function that resets scores and then call at start of round (this already happens) and start of war.
- */
+function checkForGameOver () {
+    numActivePlayers = 0
+    for (let value of playerIds) {
+        if (getLives(value) > 0) {
+            numActivePlayers += 1
+        }
+    }
+    if (numActivePlayers == 0) {
+        game.gameOver(false)
+    } else if (numActivePlayers == 1) {
+        game.gameOver(true)
+    }
+}
+function printPlayerHands (msg: string) {
+    console.log(msg)
+    console.log("Player hands:")
+    for (let index = 0; index <= playerIds.length - 1; index++) {
+        playerId = playerIds[index]
+        playerHand = playerHands[index]
+        message = ""
+        for (let cardIndex = 0; cardIndex <= playerHand.length - 1; cardIndex++) {
+            tempCard = playerHand[cardIndex]
+            message = "" + message + tempCard.name + ", "
+        }
+        console.logValue("Player " + playerId + " hand", message)
+    }
+    console.log("Player discards:")
+    for (let index = 0; index <= playerIds.length - 1; index++) {
+        playerId = playerIds[index]
+        playerHand = playerDiscards[index]
+        message = ""
+        for (let cardIndex = 0; cardIndex <= playerHand.length - 1; cardIndex++) {
+            tempCard = playerHand[cardIndex]
+            message = "" + message + tempCard.name + ", "
+        }
+        console.logValue("Player " + playerId + " discard", message)
+    }
+}
 function getLives (player2: number) {
     playerIndex = playerIds.indexOf(player2)
     playerHand = playerHands[playerIndex]
@@ -286,11 +321,12 @@ function setScore (player2: number, newScore: number) {
     }
 }
 function resetPlayerHand (player2: number) {
+    printPlayerHands("Before shuffle")
     playerIndex = playerIds.indexOf(playerId)
     playerHand = playerHands[playerIndex]
     // This should always be the case; verify anyway.
     if (playerHand.length == 0) {
-        playerDiscard = playerDiscards[player2]
+        playerDiscard = playerDiscards[playerIndex]
         // Shuffle discards.
         for (let index = 0; index <= playerDiscard.length - 1; index++) {
             swapIndex = randint(0, playerDiscard.length - 1)
@@ -304,6 +340,7 @@ function resetPlayerHand (player2: number) {
         playerDiscards[playerIndex] = []
         updateLives()
     }
+    printPlayerHands("After shuffle")
 }
 info.player1.onLifeZero(function () {
 	
@@ -318,6 +355,29 @@ function changeLives (player2: number, change: number) {
     } else {
         info.player4.changeLifeBy(change)
     }
+}
+function discardHand (hand: Card[]) {
+    for (let value of hand) {
+        discardPile.push(value)
+    }
+}
+function endGameForPlayer (player2: number) {
+    playerIndex = playerIds.indexOf(player2)
+    playerHand = playerHands[playerIndex]
+    discardHand(playerHand)
+    playerHands[playerIndex] = []
+    playerDiscard = playerDiscards[playerIndex]
+    discardHand(playerDiscard)
+    playerDiscards[playerIndex] = []
+    setLives(player2, 0)
+    music.play(music.melodyPlayable(music.wawawawaa), music.PlaybackMode.InBackground)
+    playerSprite = playerSprites[playerIndex]
+    sprites.destroy(playerSprite)
+    playerSprites[playerIndex] = fancyText.create("Game Over")
+    playerSprite = playerSprites[playerIndex]
+    fancyText.setColor(playerSprite, 15)
+    playerSprite.setPosition(xCards[player2], yCards[player2])
+    checkForGameOver()
 }
 info.player2.onLifeZero(function () {
 	
@@ -373,7 +433,7 @@ function awardDraw () {
 }
 function showInstructions () {
     message = "WAR!\\nAces are high."
-    if (playerIds.length == 3) {
+    if (playerIds.length >= 3) {
         message = "" + message + "\\nJokers are higher!"
     }
     game.showLongText(message, DialogLayout.Center)
@@ -396,15 +456,22 @@ function startWar () {
         showWarInstructions()
     }
     sprites.destroyAllSpritesOfKind(SpriteKind.InstructionSprite)
-    printStrings(["WAR!", "Press A to draw!"], 80, 55, 1)
+    printStrings(["WAR!"], 80, 55, 1)
+    for (let value of playerIds) {
+        setScore(value, 0)
+    }
     playersDrawn = []
     numPlayersInRound = 0
     index = 0
     while (index < scores.length && scores[index] == scores[0]) {
         playerId = scorePlayers[index]
-        setupDraw(playerId, NUM_WAR_CARDS)
-        numPlayersInRound += 1
-        index += 1
+        if (getLives(playerId) >= NUM_WAR_CARDS) {
+            setupDraw(playerId, NUM_WAR_CARDS)
+            numPlayersInRound += 1
+            index += 1
+        } else {
+            endGameForPlayer(playerId)
+        }
     }
     gameMode = 1
 }
@@ -426,18 +493,12 @@ function startRound () {
     for (let index = 0; index <= playerIds.length - 1; index++) {
         playerId = playerIds[index]
         if (getLives(playerId) > 0) {
-            if (playerId == 1) {
-                info.player1.setScore(0)
-            } else if (playerId == 2) {
-                info.player2.setScore(0)
-            } else if (playerId == 3) {
-                info.player3.setScore(0)
-            } else {
-                info.player4.setScore(0)
-            }
+            setScore(playerId, 0)
             resetPlayerSprites(playerId)
             setupDraw(playerId, 1)
             numPlayersInRound += 1
+        } else {
+            endGameForPlayer(playerId)
         }
     }
     gameMode = 1
@@ -445,9 +506,7 @@ function startRound () {
 let index = 0
 let instructionsSprite: fancyText.TextSprite = null
 let y = 0
-let message = ""
 let playerLives = 0
-let tempCard: Card = null
 let swapIndex = 0
 let headingSprite: fancyText.TextSprite = null
 let temp = 0
@@ -474,14 +533,17 @@ let ROUND_SPRITE_Y = 0
 let ROUND_SPRITE_X = 0
 let round = 0
 let roundSprite: fancyText.TextSprite = null
-let playerId = 0
 let discardPile: Card[] = []
 let theDeck: Shoe = null
 let gameMode = 0
-let playerDiscards: Card[][] = []
 let playerDiscard: Card[] = []
+let playerIndex = 0
+let playerDiscards: Card[][] = []
+let tempCard: Card = null
+let message = ""
 let playerHands: Card[][] = []
 let playerHand: Card[] = []
+let playerId = 0
 let playerIds: number[] = []
-let playerIndex = 0
+let numActivePlayers = 0
 init()

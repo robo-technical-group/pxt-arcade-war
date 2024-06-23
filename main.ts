@@ -322,7 +322,7 @@ function setScore (player2: number, newScore: number) {
 }
 function resetPlayerHand (player2: number) {
     printPlayerHands("Before shuffle")
-    playerIndex = playerIds.indexOf(playerId)
+    playerIndex = playerIds.indexOf(player2)
     playerHand = playerHands[playerIndex]
     // This should always be the case; verify anyway.
     if (playerHand.length == 0) {

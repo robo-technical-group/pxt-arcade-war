@@ -3,6 +3,10 @@ namespace myImages {
 
     helpers._registerFactory("image", function(name: string) {
         switch(helpers.stringTrim(name)) {
+            case "image1":
+            case "cornerSprite":return img`
+f 
+`;
             case "^*BlvZX?G]mu_#=r;i?,":
             case "blankCard":return img`
 ................................
@@ -37,10 +41,6 @@ namespace myImages {
 ................................
 ................................
 ................................
-`;
-            case "image1":
-            case "cornerSprite":return img`
-f 
 `;
         }
         return null;

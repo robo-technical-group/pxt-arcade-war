@@ -362,6 +362,7 @@ function discardHand (hand: Card[]) {
     }
 }
 function endGameForPlayer (player2: number) {
+    cardsToDraw[player2] = -1
     playerIndex = playerIds.indexOf(player2)
     playerHand = playerHands[playerIndex]
     discardHand(playerHand)
@@ -372,11 +373,11 @@ function endGameForPlayer (player2: number) {
     setLives(player2, 0)
     music.play(music.melodyPlayable(music.wawawawaa), music.PlaybackMode.InBackground)
     playerSprite = playerSprites[playerIndex]
-    sprites.destroy(playerSprite)
-    playerSprites[playerIndex] = fancyText.create("Game Over")
-    playerSprite = playerSprites[playerIndex]
-    fancyText.setColor(playerSprite, 15)
-    playerSprite.setPosition(xCards[player2], yCards[player2])
+    playerSprite.setImage(assets.image`blankCard`)
+    myTextSprite = fancyText.create("Game\\nOver")
+    fancyText.setColor(myTextSprite, 15)
+    fancyText.setFont(myTextSprite, fancyText.bold_sans_7)
+    myTextSprite.setPosition(xCards[player2], yCards[player2])
     checkForGameOver()
 }
 info.player2.onLifeZero(function () {
@@ -498,7 +499,9 @@ function startRound () {
             setupDraw(playerId, 1)
             numPlayersInRound += 1
         } else {
-            endGameForPlayer(playerId)
+            if (cardsToDraw[playerId] > -1) {
+                endGameForPlayer(playerId)
+            }
         }
     }
     gameMode = 1
@@ -507,6 +510,7 @@ let index = 0
 let instructionsSprite: fancyText.TextSprite = null
 let y = 0
 let playerLives = 0
+let myTextSprite: fancyText.TextSprite = null
 let swapIndex = 0
 let headingSprite: fancyText.TextSprite = null
 let temp = 0
